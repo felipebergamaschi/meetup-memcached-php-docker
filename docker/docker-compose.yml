@@ -1,0 +1,65 @@
+version: "3"
+services:
+  memcached:
+    image: memcached
+    ports:
+      - "11212:11211"
+    networks:
+      local-network:
+        aliases:
+          - memcached
+    container_name: memcached
+
+  mysql:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: mysql_database
+      MYSQL_USER: mysql_user
+      MYSQL_PASSWORD: mysql_pw
+    ports:
+      - "13306:3306"
+    volumes:
+      - ./mysql/initial.sql:/docker-entrypoint-initdb.d/initial.sql
+      # - ./misc/data:/var/lib/mysql
+    container_name: mysql
+    networks:
+      local-network:
+        aliases:
+          - mysql
+
+  nginx:
+    build: ./nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../:/var/www/html
+    container_name: nginx
+    depends_on:
+      - web
+    networks:
+      local-network:
+        aliases:
+          - nginx
+
+  web:
+    build: ./php-fpm73
+    volumes:
+      - ../:/var/www/html
+    environment:
+      DATABASE_HOST: "mysql"
+      DATABASE_NAME: "mysql_database"
+      DATABASE_USER: "mysql_user"
+      DATABASE_PASSWORD: "mysql_pw"
+    container_name: web
+    depends_on:
+      - mysql
+      - memcached
+    networks:
+      local-network:
+        aliases:
+          - web
+
+networks:
+  local-network:
